@@ -1,0 +1,1 @@
+{"snapshotsSaved": 5, "snapshotInterval": 30, "backupsSaved": 20, "backupDays": [6], "restartDays": [0], "restartTime": "23:00", "backupPath": "backups", "backupServer": null, "serverCommand": "java -jar server.jar nogui"}
