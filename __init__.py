@@ -40,6 +40,58 @@ def settings():
         makeSettings()
         return JSON(load(open('settings.json')))
 
+class Server:
+    def __init__(self):
+        self.ssock,self.msock = socket.socketpair()
+        self.running = True
+        pthread = Thread(target=self.mprinter)
+        pthread.start()
+        sproc = Thread(target=self.server_instance)
+        sproc.start()
+        self.manager()
+    
+    def mprinter(self):
+        while self.running:
+            dat = self.get_all(self.msock)
+            if dat:
+                print(dat)
+    
+    def manager(self):
+        while self.running:
+            uin = input('> ')
+            self.msock.send(bytes(uin,'utf-8'))
+
+    def get_all(self,sock):
+        try:
+            dat = str(sock.recv(5120)).strip()
+            dat = dat[2:len(dat)-5]
+            return dat
+        except IndexError:
+            return b''
+
+    def run_server_comm(self):
+        while self.running:
+            dat = self.ssock.recv(5120)
+            dat = str(dat).strip()
+            dat = dat[2:len(dat)-1]
+            if dat:
+                print(dat)
+                self.serv.stdin.write(bytes(dat + "\r\n", "ascii"))
+                self.serv.stdin.flush()
+
+    def server_instance(self):
+        self.serv = Popen(settings().serverCommand,stdin=PIPE,stdout=PIPE,stderr=STDOUT)
+        self.commT = Thread(target=self.run_server_comm)
+        self.commT.start()
+        while self.running:
+            line = self.serv.stdout.readline()
+            while line:
+                self.ssock.send(line)
+                line = self.serv.stdout.readline()
+                self.serv.stdout.flush()
+
+serv = Server()
+
 
     
 
