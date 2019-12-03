@@ -1,6 +1,7 @@
 from subprocess import Popen, PIPE, STDOUT
 import socket
 from multiprocessing import Process
+from threading import Thread
 from json import load, dump, JSONDecodeError
 
 def reportError(text,breaking=False):
@@ -39,26 +40,6 @@ def settings():
         makeSettings()
         return JSON(load(open('settings.json')))
 
-def runManager(_socket):
-    pass
 
-def runServer(_socket):
-    server_process = Popen(settings.serverCommand,stdin=PIPE,stdout=PIPE,stderr=STDOUT)
-    while _socket.fileno() != -1:
-        output = server_process.stdout.readlines()
-        server_process.stdout.flush()
-        cmd = input('> ')
-        if cmd:
-            server_process.stdin.write(bytes(cmd,'utf-8'))
-            server_process.stdin.flush()
-
-def main():
-    pass
-
-
-
-
-if __name__ == '__main__':
-    main()
     
 
