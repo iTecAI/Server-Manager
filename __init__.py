@@ -3,6 +3,11 @@ import socket
 from multiprocessing import Process
 from threading import Thread
 from json import load, dump, JSONDecodeError
+import shutil
+import zipfile
+import tempfile
+import os
+import time
 
 def reportError(text,breaking=False):
     print(text)
@@ -24,6 +29,7 @@ def makeSettings():
         'restartDays':[0], #days on which to do a server & system restart (0(Sunday) -> 6(Saturday))
         'restartTime':'23:00', #HH:MM to restart on
         'backupPath':'backups', #folder to store backups
+        'worldPath':'world',
         'backupServer':None, #OPTIONAL - external server to send backups to for redundancy
         'serverCommand':'java -jar server.jar nogui' #command to run the server
     }
@@ -65,6 +71,8 @@ class Server:
     def get_all(self,sock):
         try:
             dat = str(sock.recv(5120)).strip()
+            if not dat:
+                return None
             dat = dat[2:len(dat)-5]
             return dat
         except IndexError:
@@ -95,7 +103,29 @@ class Server:
     def stop(self):
         self.command('stop')
 
+    def getEarliest(self,d):
+        earliestTime = time.time()
+        for i in os.listdir(d):
+            if os.stat(os.path.join(d,i)).st_atime < earliestTime:
+                earliest = i
+                earliestTime = os.stat(os.path.join(d,i)).st_atime
+        
+        return os.path.join(d,earliest)
+
+    def create_snapshot(self):
+        if len(os.listdir(settings().backupPath)) > settings().snapshotsSaved:
+            while len(os.listdir(settings().backupPath)) > settings().snapshotsSaved:
+                os.remove(self.getEarliest(settings().backupPath))
+        shutil.make_archive(os.path.join(settings().backupPath,time.strftime('%Y-%m-%d-%H-%M-%S')),'zip',settings().worldPath)
+        
+    def run(self):
+        while self.running:
+            pass
+
 serv = Server()
+for i in range(10):
+    serv.create_snapshot()
+    print('created',i)
 while True:
     serv.command(input())
 
