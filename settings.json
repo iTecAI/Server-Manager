@@ -1,1 +1,0 @@
-{"snapshotsSaved": 5, "snapshotInterval": 30, "backupsSaved": 20, "backupDays": [6], "restartDays": [0], "restartTime": "23:00", "backupPath": "backups", "worldPath":"world", "backupServer": null, "serverCommand": "java -Xmx1024M -Xms1024M -jar server.jar nogui"}

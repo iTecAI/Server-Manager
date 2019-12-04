@@ -23,12 +23,13 @@ class JSON:
 def makeSettings():
     settings = {
         'snapshotsSaved':5, #number of snapshots to save
-        'snapshotInterval':30, #minutes between snapshots
+        'snapshotInterval':30, #minutes between snapshots (should be at least 5 for good performance)
         'backupsSaved':20, #number of backups saved
-        'backupDays':[6], #days on which to make backups (0(Sunday) -> 6(Saturday))
-        'restartDays':[0], #days on which to do a server & system restart (0(Sunday) -> 6(Saturday))
+        'backupDays':[6], #days on which to make backups (0(Monday) -> 6(Sunday))
+        'restartDays':[0], #days on which to do a server & system restart (0(Monday) -> 6(Sunday))
         'restartTime':'23:00', #HH:MM to restart on
         'backupPath':'backups', #folder to store backups
+        'snapshotPath':'snapshots', #folder to store snapshots
         'worldPath':'world',
         'backupServer':None, #OPTIONAL - external server to send backups to for redundancy
         'serverCommand':'java -jar server.jar nogui' #command to run the server
@@ -113,19 +114,29 @@ class Server:
         return os.path.join(d,earliest)
 
     def create_snapshot(self):
-        if len(os.listdir(settings().backupPath)) > settings().snapshotsSaved:
-            while len(os.listdir(settings().backupPath)) > settings().snapshotsSaved:
+        if len(os.listdir(settings().snapshotPath)) > settings().snapshotsSaved:
+            while len(os.listdir(settings().snapshotPath)) > settings().snapshotsSaved:
+                os.remove(self.getEarliest(settings().snapshotPath))
+        shutil.make_archive(os.path.join(settings().snapshotPath,time.strftime('%Y-%m-%d-%H-%M-%S')),'zip',settings().worldPath)
+
+    def backup(self):
+        if len(os.listdir(settings().backupPath)) > settings().backupsSaved:
+            while len(os.listdir(settings().backupPath)) > settings().backupsSaved:
                 os.remove(self.getEarliest(settings().backupPath))
-        shutil.make_archive(os.path.join(settings().backupPath,time.strftime('%Y-%m-%d-%H-%M-%S')),'zip',settings().worldPath)
+        shutil.make_archive(os.path.join(settings().backupPath,time.strftime('%Y-%m-%d')),'zip',settings().worldPath)
         
     def run(self):
+        self.last_snap = 0
+        self.last_backup = time.gmtime().tm_mday
         while self.running:
-            pass
+            if time.gmtime().tm_min%settings().snapshotInterval == 0 and time.time()>self.last_snap+90:
+                self.create_snapshot()
+                self.last_snap = time.time()
+            if time.gmtime().tm_mday != self.last_backup and time.gmtime().tm_wday in settings().backupDays:
+                self.backup()
+                self.last_backup = time.gmtime().tm_mday
 
 serv = Server()
-for i in range(10):
-    serv.create_snapshot()
-    print('created',i)
 while True:
     serv.command(input())
 
