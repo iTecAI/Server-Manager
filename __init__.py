@@ -48,18 +48,19 @@ class Server:
         pthread.start()
         sproc = Thread(target=self.server_instance)
         sproc.start()
-        self.manager()
     
     def mprinter(self):
         while self.running:
             dat = self.get_all(self.msock)
             if dat:
+                dat = dat[2:len(dat)-3]
+                dat = dat.replace("\\\\r\\\\n'b'",'\n')
                 print(dat)
     
-    def manager(self):
-        while self.running:
-            uin = input('> ')
-            self.msock.send(bytes(uin,'utf-8'))
+    def command(self,command):
+        self.msock.send(bytes(command,'utf-8'))
+        if command == 'stop':
+            self.running = False
 
     def get_all(self,sock):
         try:
@@ -72,11 +73,10 @@ class Server:
     def run_server_comm(self):
         while self.running:
             dat = self.ssock.recv(5120)
-            dat = str(dat).strip()
-            dat = dat[2:len(dat)-1]
+            #dat = str(dat).strip()
+            #dat = dat[2:len(dat)-1]
             if dat:
-                print(dat)
-                self.serv.stdin.write(bytes(dat + "\r\n", "ascii"))
+                self.serv.stdin.write(dat + b"\r\n")
                 self.serv.stdin.flush()
 
     def server_instance(self):
@@ -84,13 +84,20 @@ class Server:
         self.commT = Thread(target=self.run_server_comm)
         self.commT.start()
         while self.running:
-            line = self.serv.stdout.readline()
+            line = str(self.serv.stdout.readline())
+            self.serv.stdout.flush()
             while line:
-                self.ssock.send(line)
-                line = self.serv.stdout.readline()
+                line.replace('\r\n','\n')
+                self.ssock.send(bytes(line,'utf-8'))
+                line = str(self.serv.stdout.readline())
                 self.serv.stdout.flush()
+    
+    def stop(self):
+        self.command('stop')
 
 serv = Server()
+while True:
+    serv.command(input())
 
 
     
