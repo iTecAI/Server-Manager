@@ -137,6 +137,9 @@ class Server:
                 self.last_backup = time.gmtime().tm_mday
 
 serv = Server()
+#backup testing
+serv.backup()
+serv.create_snapshot()
 while True:
     serv.command(input())
 
